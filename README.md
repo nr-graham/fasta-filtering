@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.com/nr-graham/fasta-filtering.svg?branch=master)](https://travis-ci.com/nr-graham/fasta-filtering)
+
+
 # fasta-filtering
 R script for filtering non-target reads from fasta files
 
