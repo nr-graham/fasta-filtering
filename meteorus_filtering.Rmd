@@ -1,0 +1,75 @@
+---
+title: "Meteorus Sequence Filtering"
+author: "NR Graham"
+output: html_document
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(readr)
+library(tidyverse)
+library(seqinr)
+library(ggplot2)
+```
+## Read in the data
+```{r readdata, message=FALSE, warning=FALSE}
+blast<-read_csv("meteorus_blast.csv")
+taxid<-read_csv("meteorus_taxids.csv")
+fasta<-read.fasta("metsequences.fasta", as.string = TRUE, forceDNAtolower = FALSE, set.attributes = FALSE)
+
+```
+## Explore the data
+```{r, exploredata, message=FALSE, warning=FALSE}
+names(blast)
+names(taxid)
+unique(taxid$phylum)
+unique(taxid$class)
+unique(taxid$order)
+```
+## Remove non-target sequences
+```{r, remove, message=FALSE, warning=FALSE}
+met<-blast %>%
+  left_join(taxid) %>%
+  filter(order == "Hymenoptera") %>%
+  select(qseqid, species, pident, length, mismatch, gapopen, evalue, staxids) %>%
+  separate(qseqid, c("smpl", "zotu"), remove = FALSE) %>%
+  separate(qseqid, c(NA, "size"), sep = ";", remove = FALSE)
+length(unique(met$smpl))
+ 
+met %>%
+  dplyr::count(species, staxids) 
+  
+```
+## Subset fasta based on sequences with taxonomic matches to target
+```{r, subsetfasta, message=FALSE, warning=FALSE}
+subsetlist <- met %>%
+  filter(staxids == "1080877" | staxids == "460827" | staxids == "51522")
+
+#check to see keeping all samples
+length(unique(subsetlist$smpl)) 
+  
+fasta_filterd<-fasta[names(fasta) %in% subsetlist$qseqid]
+```
+## Write modified sequences to file
+```{r, writefasta, message=FALSE, warning=FALSE}
+write.fasta(sequences = fasta_filterd, names = names(fasta_filterd), nbchar = 80, open = "w", file.out = "met_filterd.fasta")
+```
+## The E-value (expectation value) is a corrected bit-score adjusted to the sequence database size. Lower E-values suggest better hits. May be good to check in some projects.
+```{r evalue, echo=TRUE, message=FALSE, warning=FALSE}
+sort(unique(met$evalue))
+sort(unique(subsetlist$evalue))
+```
+```{r evalue_hist, echo=FALSE, message=FALSE, warning=FALSE}
+met %>%
+  ggplot(aes(evalue)) + 
+  geom_histogram()+
+  theme_minimal()+
+  ggtitle("Unfiltered Hymenoptera Hits")
+
+subsetlist %>%
+  ggplot(aes(evalue)) + 
+  geom_histogram() +
+  theme_minimal()+
+  ggtitle("Filtered Meteorus spp. Hits")
+
+```
+
