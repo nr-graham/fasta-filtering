@@ -30,19 +30,29 @@ unique(taxid$order)
 met<-blast %>%
   left_join(taxid) %>%
   filter(order == "Hymenoptera") %>%
-  select(qseqid, species, pident, length, mismatch, gapopen, evalue, staxids) %>%
+  select(qseqid, genus, species, pident, length, mismatch, gapopen, evalue, staxids) %>%
   separate(qseqid, c("smpl", "zotu"), remove = FALSE) %>%
   separate(qseqid, c(NA, "size"), sep = ";", remove = FALSE)
 length(unique(met$smpl))
  
 met %>%
-  dplyr::count(species, staxids) 
+  dplyr::count(genus, staxids) 
   
 ```
 ## Subset fasta based on sequences with taxonomic matches to target
 ```{r, subsetfasta, message=FALSE, warning=FALSE}
+#subsetlist <- met %>%
+ # filter(staxids == "1080877" | staxids == "460827" | staxids == "51522")
+
 subsetlist <- met %>%
-  filter(staxids == "1080877" | staxids == "460827" | staxids == "51522")
+  filter(genus == "Meteorus") %>%
+  filter(mismatch < 4) %>%
+  filter(length >= 285) %>%
+  filter(pident > 99) %>%
+  filter(zotu == 1)
+
+subsetlist %>%
+  dplyr::count(genus, species, staxids)
 
 #check to see keeping all samples
 length(unique(subsetlist$smpl)) 
@@ -51,7 +61,7 @@ fasta_filterd<-fasta[names(fasta) %in% subsetlist$qseqid]
 ```
 ## Write modified sequences to file
 ```{r, writefasta, message=FALSE, warning=FALSE}
-write.fasta(sequences = fasta_filterd, names = names(fasta_filterd), nbchar = 80, open = "w", file.out = "met_filterd.fasta")
+write.fasta(sequences = fasta_filterd, names = names(fasta_filterd), nbchar = 80, open = "w", file.out = "met_filtered.fasta")
 ```
 ## The E-value (expectation value) is a corrected bit-score adjusted to the sequence database size. Lower E-values suggest better hits. May be good to check in some projects.
 ```{r evalue, echo=TRUE, message=FALSE, warning=FALSE}
