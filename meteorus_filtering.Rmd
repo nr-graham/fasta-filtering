@@ -33,6 +33,7 @@ met<-blast %>%
   select(qseqid, genus, species, pident, length, mismatch, gapopen, evalue, staxids) %>%
   separate(qseqid, c("smpl", "zotu"), remove = FALSE) %>%
   separate(qseqid, c(NA, "size"), sep = ";", remove = FALSE)
+
 length(unique(met$smpl))
  
 met %>%
@@ -41,15 +42,14 @@ met %>%
 ```
 ## Subset fasta based on sequences with taxonomic matches to target
 ```{r, subsetfasta, message=FALSE, warning=FALSE}
-#subsetlist <- met %>%
- # filter(staxids == "1080877" | staxids == "460827" | staxids == "51522")
+subsetlist <- met %>%
+  )
 
 subsetlist <- met %>%
   filter(genus == "Meteorus") %>%
-  filter(mismatch < 4) %>%
+  filter(mismatch <= 2) %>%
   filter(length >= 285) %>%
-  filter(pident > 99) %>%
-  filter(zotu == 1)
+  filter(pident > 99) 
 
 subsetlist %>%
   dplyr::count(genus, species, staxids)
@@ -83,3 +83,41 @@ subsetlist %>%
 
 ```
 
+## Playing around with the data to find the best subsetting
+```{r}
+subsetlist %>%
+  filter(species == "(Meteorus ictericus)") %>%
+  dplyr::count(smpl, species, zotu) 
+subsetlist %>%
+  filter(species == "(Meteorus laphygmae)")%>%
+  dplyr::count(smpl, species, zotu) 
+subsetlist %>%
+  filter(species == "(Meteorus pulchricornis)") %>%
+  dplyr::count(smpl, species, zotu) 
+subsetlist %>%
+  filter(staxids == 1031123) %>%
+  dplyr::count(smpl, species, zotu) 
+
+```
+
+```{r}
+
+subset2 <- met %>%
+  filter(species == "(Meteorus ictericus)" | species == "(Meteorus laphygmae)") %>%
+  filter(mismatch <= 2) %>%
+  filter(length >= 285) %>%
+  filter(pident > 99)
+
+subset2 %>%
+  dplyr::count(genus, species, staxids)
+
+#check to see keeping all samples
+length(unique(subset2$smpl)) 
+  
+fasta_filtered2<-fasta[names(fasta) %in% subset2$qseqid]
+```
+
+## Write modified sequences to file
+```{r, writefasta, message=FALSE, warning=FALSE}
+write.fasta(sequences = fasta_filtered2, names = names(fasta_filtered2), nbchar = 80, open = "w", file.out = "met_filtered_laphy89.fasta")
+```
